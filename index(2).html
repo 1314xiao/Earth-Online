@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Earth Online</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #03060d;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: #fff;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .game-launcher {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    cursor: pointer;
+    transition: filter .8s ease, opacity .8s ease;
+    background:
+      radial-gradient(120% 80% at 50% 10%, #06132b 0%, #03070f 45%, #000003 100%);
+  }
+
+  .game-launcher.loading {
+    opacity: 0;
+    filter: blur(18px) brightness(.6);
+    pointer-events: none;
+  }
+
+  /* 星空层 */
+  .stars, .stars-2 {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    will-change: transform, opacity;
+  }
+  .stars {
+    background-image:
+      radial-gradient(1px 1px at 20px 30px, rgba(255,255,255,.85), transparent),
+      radial-gradient(1px 1px at 80px 120px, rgba(255,255,255,.65), transparent),
+      radial-gradient(1.5px 1.5px at 160px 60px, rgba(255,255,255,.8), transparent),
+      radial-gradient(1px 1px at 240px 200px, rgba(255,255,255,.55), transparent),
+      radial-gradient(1.2px 1.2px at 320px 90px, rgba(255,255,255,.75), transparent),
+      radial-gradient(1px 1px at 400px 260px, rgba(255,255,255,.5), transparent),
+      radial-gradient(1.4px 1.4px at 480px 160px, rgba(255,255,255,.7), transparent);
+    background-size: 520px 360px;
+    animation: starDrift 18s linear infinite;
+    opacity: .9;
+  }
+  .stars-2 {
+    background-image:
+      radial-gradient(1px 1px at 40px 220px, rgba(180,210,255,.55), transparent),
+      radial-gradient(1.2px 1.2px at 130px 300px, rgba(180,210,255,.45), transparent),
+      radial-gradient(1px 1px at 290px 340px, rgba(255,255,255,.4), transparent),
+      radial-gradient(1.5px 1.5px at 370px 420px, rgba(180,210,255,.55), transparent),
+      radial-gradient(1px 1px at 450px 380px, rgba(255,255,255,.35), transparent);
+    background-size: 600px 480px;
+    animation: starDrift 32s linear infinite reverse;
+    opacity: .55;
+  }
+  @keyframes starDrift {
+    from { background-position: 0 0; }
+    to   { background-position: -520px 360px; }
+  }
+
+  /* 地球背景：用真实地球弧面图，可替换成本地/你提供的图 */
+  /*.earth-bg {
+    position: absolute;
+    left: 50%;
+    bottom: -8vh;
+    width: 160vw;
+    max-width: 2200px;
+    aspect-ratio: 16 / 9;
+    transform: translateX(-50%) scale(1.04);
+    background:
+      radial-gradient(120% 80% at 50% 100%, rgba(0,180,255,.18), transparent 60%),
+      url('https://images.unsplash.com/photo-1614730321146-b6fa6a46bcb4?auto=format&fit=crop&w=2400&q=80') center / cover no-repeat;
+    filter: saturate(1.05) contrast(1.05);
+    animation: earthBreath 14s ease-in-out infinite;
+    pointer-events: none;
+    will-change: transform;
+  }*/
+  /* 如果上面的图加载不稳定，可改用下面这个更“地球弧面”的视觉 */
+  .earth-fallback {
+    position: absolute;
+    left: 50%;
+    bottom: -22vh;
+    width: 180vw;
+    height: 62vh;
+    transform: translateX(-50%);
+    background:
+      radial-gradient(40% 60% at 50% 100%, rgba(120,200,255,.35), transparent 70%),
+      radial-gradient(60% 80% at 50% 100%, rgba(8,40,80,.95), rgba(0,0,0,0) 70%),
+      /*url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=2400&q=80') center / cover no-repeat;*/
+      url('./a.jpg') center / cover no-repeat;
+    filter: brightness(.95) saturate(1.1);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .earth-atmosphere {
+    position: absolute;
+    left: 50%;
+    bottom: -2vh;
+    width: 170vw;
+    max-width: 2300px;
+    height: 28vh;
+    transform: translateX(-50%);
+    background: radial-gradient(50% 100% at 50% 100%, rgba(80,170,255,.28), transparent 70%);
+    filter: blur(18px);
+    pointer-events: none;
+    z-index: 2;
+  }
+  @keyframes earthBreath {
+    0%,100% { transform: translateX(-50%) scale(1.04); }
+    50% { transform: translateX(-50%) scale(1.075); }
+  }
+
+  /* 顶部/内容层级 */
+  .ui {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+  }
+  .ui > * { pointer-events: auto; }
+
+  /* CADPA */
+  .cadpa-tip {
+    position: absolute;
+    top: max(18px, 2.2vh);
+    left: max(18px, 2.2vw);
+    width: clamp(48px, 6.4vw, 62px);
+    height: clamp(66px, 10vh, 82px);
+    border-radius: 6px;
+    background: #36c94e;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    box-shadow: 0 6px 18px rgba(54,201,78,.28);
+  }
+  .cadpa-tip span {
+    font-size: clamp(22px, 4.4vw, 30px);
+    line-height: 1;
+  }
+  .cadpa-tip small {
+    margin-top: 5px;
+    font-size: clamp(7px, 1.25vw, 9px);
+    line-height: 1.25;
+    text-align: center;
+    opacity: .96;
+  }
+
+  /* 右侧图标 */
+  .sidebar-right {
+    position: absolute;
+    right: max(18px, 2.2vw);
+    top: 50%;
+    transform: translateY(-58%);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(18px, 3.8vh, 28px);
+    align-items: center;
+  }
+  .icon-btn, .power-icon {
+    width: clamp(36px, 6.2vw, 44px);
+    height: clamp(36px, 6.2vw, 44px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,.78);
+    border-radius: 50%;
+    transition: transform .2s ease, color .2s ease, background .2s ease;
+    background: transparent;
+  }
+  .icon-btn svg, .power-icon svg {
+    width: clamp(20px, 4.2vw, 26px);
+    height: clamp(20px, 4.2vw, 26px);
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 6px rgba(180,210,255,.18));
+  }
+  .icon-btn:hover, .power-icon:hover {
+    color: #fff;
+    transform: scale(1.08);
+    background: rgba(255,255,255,.05);
+  }
+  .power-icon {
+    position: absolute;
+    right: max(18px, 2.2vw);
+    bottom: max(18px, 2.2vh);
+  }
+
+  /* 中央文字 */
+  .center-text {
+    position: absolute;
+    left: 50%;
+    top: 36vh;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+  }
+  .main-title {
+    font-size: clamp(36px, 8.8vw, 68px);
+    font-weight: 500;
+    letter-spacing: 3px;
+    color: #f4f8ff;
+    background: linear-gradient(180deg, #ffffff 0%, #b9d4ff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 28px rgba(120,170,255,.22);
+    margin-bottom: 14px;
+  }
+  .sub-title {
+    font-size: clamp(13px, 2.6vw, 18px);
+    letter-spacing: 4px;
+    color: rgba(230,240,255,.62);
+    font-weight: 300;
+    text-transform: lowercase;
+  }
+
+  /* 服务器状态 */
+  .server-box {
+    position: absolute;
+    left: 50%;
+    bottom: max(78px, 10vh);
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 18px;
+    border-radius: 999px;
+    background: rgba(180,200,230,.06);
+    border: 1px solid rgba(255,255,255,.08);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    color: rgba(230,240,255,.78);
+    font-size: clamp(13px, 2.4vw, 16px);
+    letter-spacing: .8px;
+    font-weight: 300;
+    box-shadow: 0 10px 30px rgba(0,0,0,.45);
+    white-space: nowrap;
+  }
+  .dot-green {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 10px rgba(74,222,128,.75);
+  }
+  .signal {
+    opacity: .65;
+    font-size: clamp(13px, 2.4vw, 16px);
+    margin-left: 2px;
+    letter-spacing: 0;
+  }
+
+  .copyright {
+    position: absolute;
+    left: max(16px, 2vw);
+    bottom: max(10px, 1.2vh);
+    color: rgba(180,200,230,.32);
+    font-size: clamp(10px, 1.4vw, 12px);
+    letter-spacing: 1px;
+    font-weight: 300;
+    pointer-events: none;
+  }
+
+  /* 加载遮罩 */
+  .loading-mask {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(2,5,12,.78);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #d8e8ff;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .5s ease;
+  }
+  .loading-mask.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .loading-mask span:first-child {
+    font-size: clamp(18px, 3.4vw, 24px);
+    letter-spacing: 3px;
+    animation: pulseText 1.6s infinite;
+  }
+  .loading-sub {
+    font-size: clamp(12px, 2.2vw, 15px);
+    opacity: .55;
+    letter-spacing: 4px;
+  }
+  @keyframes pulseText {
+    0%,100% { opacity: .45; }
+    50% { opacity: 1; }
+  }
+
+  @media (max-aspect-ratio: 3/4) {
+    .earth-bg { width: 220vw; bottom: -6vh; }
+    .earth-fallback { width: 240vw; bottom: -18vh; }
+    .center-text { top: 34vh; }
+    .server-box { bottom: max(86px, 11vh); }
+  }
+</style>
+</head>
+<body>
+
+<div class="game-launcher" id="launcher">
+  <div class="stars"></div>
+  <div class="stars-2"></div>
+
+  <div class="earth-bg" aria-hidden="true"></div>
+  <div class="earth-fallback" aria-hidden="true"></div>
+  <div class="earth-atmosphere" aria-hidden="true"></div>
+
+  <div class="ui">
+    <div class="cadpa-tip">
+      <span>0+</span>
+      <small>CADPA<br>适龄提示</small>
+    </div>
+
+    <div class="sidebar-right">
+      <div class="icon-btn" aria-label="设置" id="btnSettings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </div>
+      <div class="icon-btn" aria-label="声音" id="btnSound">
+        <svg viewBox="0 0 24 24"><path d="M5 10v4a1 1 0 0 0 1 1h2l4 3V6L8 9H6a1 1 0 0 0-1 1z"/><path d="M16 8a5 5 0 0 1 0 8"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>
+      </div>
+      <div class="icon-btn" aria-label="档案" id="btnProfile">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      </div>
+      <div class="icon-btn" aria-label="任务" id="btnQuest">
+        <svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+      </div>
+    </div>
+
+    <div class="power-icon" aria-label="退出/电源" id="btnPower">
+      <svg viewBox="0 0 24 24"><path d="M12 3v8"/><path d="M6.5 6.5a8 8 0 1 0 11 0"/></svg>
+    </div>
+
+    <div class="center-text">
+      <div class="main-title">开始游戏</div>
+      <div class="sub-title">tap anywhere to start</div>
+    </div>
+
+    <div class="server-box">
+      <span class="dot-green"></span>
+      <span>亚洲 · 中国服 · 重庆1区</span>
+      <span class="signal">📶</span>
+    </div>
+
+    <div class="copyright">© 2718 Universe Inc · Earth Online</div>
+  </div>
+</div>
+
+<div class="loading-mask" id="loadingMask">
+  <span>✦ 连接世界中 ✦</span>
+  <span class="loading-sub">EARTH ONLINE</span>
+</div>
+
+<script>
+(function () {
+  const launcher = document.getElementById('launcher');
+  const loadingMask = document.getElementById('loadingMask');
+  const buttons = [
+    document.getElementById('btnSettings'),
+    document.getElementById('btnSound'),
+    document.getElementById('btnProfile'),
+    document.getElementById('btnQuest'),
+    document.getElementById('btnPower')
+  ];
+  let isTransitioning = false;
+
+  function launch() {
+    if (isTransitioning) return;
+    isTransitioning = true;
+    launcher.classList.add('loading');
+    loadingMask.classList.add('show');
+
+    setTimeout(() => {
+      // 改成你的实际入口，比如 ./index.html 或 ./game.html
+      window.location.href = './game.html';
+    }, 2300);
+  }
+
+  // 全局点击进入；按钮可阻止冒泡，避免误触进入
+  launcher.addEventListener('click', (e) => {
+    // 如果希望任何按钮也触发进入，删除下面这段 if
+    if (buttons.some(b => b && b.contains(e.target))) {
+      e.stopPropagation();
+      // 这里可扩展设置弹窗/静音/退出等逻辑
+      return;
+    }
+    launch();
+  });
+
+  launcher.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      launch();
+    }
+  });
+  launcher.setAttribute('tabindex', '0');
+
+  console.log('Earth Online · tap anywhere to start');
+})();
+</script>
+
+</body>
+</html>

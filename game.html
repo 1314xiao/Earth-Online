@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Earth‑Online · 世界</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            user-select: none;
+        }
+        .container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        #bgMedia {
+            width:100%;
+            height:100%;
+            object-fit: cover;
+            position:absolute;
+            inset:0;
+            pointer-events: none;
+        }
+
+        /* ---------- HUD 图标白色 ---------- */
+        .hud-icon {
+            width: clamp(40px,8vw,64px);
+            height: clamp(40px,8vw,64px);
+            background:rgba(0,0,0,0.3);
+            backdrop-filter: blur(6px);
+            border-radius:8px;
+            color: #ffffff !important;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size: clamp(22px,4.5vw,36px);
+            transition: transform 0.12s ease, background 0.12s ease;
+            cursor: pointer;
+            text-shadow: 0 0 2px rgba(0,0,0,0.2);
+        }
+        .hud-icon:active{
+            transform: scale(0.86);
+            background:rgba(0,0,0,0.55);
+        }
+
+        .loc-marker,
+        .star-bookmark,
+        .uid-text,
+        .key-label,
+        .minimap-arrow {
+            color: #ffffff !important;
+        }
+
+        .parallax-wrap{
+            position:absolute;
+            inset:0;
+            will-change: transform;
+        }
+
+        /* 左上区域 */
+        .top-left{
+            position:absolute;
+            top: max(12px,2vh);
+            left: max(12px,2vw);
+        }
+        .setting-icon{
+            position:absolute;
+            top:0;
+            left:0;
+            z-index:10;
+        }
+        .minimap{
+            width: clamp(108px,22vw,175px);
+            height: clamp(108px,22vw,175px);
+            border-radius:50%;
+            background:rgba(232,237,244,0.09);
+            backdrop-filter: blur(8px);
+            border:2px solid rgba(255,255,255,0.5);
+            position:absolute;
+            top: clamp(48px,9vw,82px);
+            left:0;
+            overflow:hidden;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .minimap-arrow{
+            font-size:32px;
+            transition: transform 0.05s linear;
+            filter: drop-shadow(0 0 6px #00000077);
+        }
+        .loc-marker{
+            position:absolute;
+            //top: clamp(168px,32vw,258px);
+            top: clamp(135px,24vw,190px);
+            left:-15px;
+            font-size: clamp(28px,5.5vw,42px);
+            filter: drop-shadow(0 0 6px #00000099);
+            cursor:pointer;
+            transition: transform 0.12s;
+        }
+        .loc-marker:active{
+            transform: scale(0.84);
+        }
+        .star-bookmark{
+            position:absolute;
+            bottom: max(12px,2vh);
+            left: max(12px,2vw);
+            font-size: clamp(30px,5.5vw,44px);
+            filter: drop-shadow(0 0 6px #00000099);
+            cursor:pointer;
+            transition: transform 0.12s;
+        }
+        .star-bookmark:active{
+            transform: scale(0.84);
+        }
+
+        /* 右上角图标栏 */
+        .top-right-bar{
+            position:absolute;
+            top: max(12px,2vh);
+            right: max(12px,2vw);
+            display:flex;
+            gap: clamp(8px,2vw,14px);
+        }
+
+        /* 右下操作键 */
+        .bottom-right-hud{
+            position:absolute;
+            bottom: max(120px,12vh);
+            right: max(12px,2vw);
+            display:flex;
+            flex-direction:column;
+            align-items:flex-end;
+            gap: clamp(10px,2.5vh,18px);
+        }
+        .key-box{
+            position:relative;
+        }
+        .key-label{
+            position:absolute;
+            bottom:-6px;
+            right:-6px;
+            background:rgba(0,0,0,0.7);
+            color:#ffffff !important;
+            font-size:11px;
+            padding:2px 8px;
+            border-radius:4px;
+            pointer-events:none;
+            font-weight:500;
+            letter-spacing:0.5px;
+        }
+
+        .uid-text{
+            position:absolute;
+            bottom: max(4px,1vh);
+            right: max(12px,2vw);
+            color:#ffffff !important;
+            font-size: clamp(12px,2vw,15px);
+            text-shadow:1px 1px 4px #000000bb;
+            letter-spacing:0.6px;
+        }
+
+        /* ---------- 设置弹窗 (从齿轮呼出) ---------- */
+        .settings-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            z-index: 999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.25s ease;
+        }
+        .settings-overlay.open {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        .settings-panel {
+            background: rgba(15, 19, 29, 0.87);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 28px;
+            padding: clamp(24px,5vw,44px);
+            min-width: 260px;
+            max-width: 480px;
+            width: 85vw;
+            color: #fff;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            transition: 0.2s;
+        }
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+        .settings-header h2 {
+            font-weight: 430;
+            font-size: clamp(22px,4vw,32px);
+            letter-spacing: 1px;
+        }
+        .close-btn {
+            background: rgba(255,255,255,0.06);
+            border: none;
+            color: #fff;
+            font-size: 28px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.15s;
+        }
+        .close-btn:active {
+            background: rgba(255,255,255,0.2);
+            transform: scale(0.91);
+        }
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+        .setting-label {
+            font-size: clamp(16px,2.8vw,21px);
+            font-weight: 330;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .toggle-btn {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: clamp(14px,2.2vw,18px);
+            cursor: pointer;
+            transition: 0.15s;
+            font-weight: 390;
+            backdrop-filter: blur(4px);
+        }
+        .toggle-btn:active {
+            background: rgba(255,255,255,0.22);
+            transform: scale(0.95);
+        }
+        .toggle-btn.active-mode {
+            background: #3578ea;
+            border-color: #5b9aff;
+        }
+        .setting-desc {
+            font-size: clamp(12px,1.8vw,15px);
+            opacity: 0.5;
+            margin-top: 4px;
+            padding-left: 4px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <video id="bgMedia" autoplay muted playsinline></video>
+
+    <!-- 视差容器 -->
+    <div class="parallax-wrap" id="parallaxWrap">
+        <!-- 左上 -->
+        <div class="top-left">
+            <div class="hud-icon setting-icon" id="gearIcon" data-name="设置">⚙</div>
+            <div class="minimap">
+                <div class="minimap-arrow" id="minimapArrow">⬆️</div>
+            </div>
+            <div class="loc-marker" data-name="定位标记">📍</div>
+        </div>
+        <div class="star-bookmark" data-name="收藏">⭐</div>
+
+        <!-- 右上 -->
+        <div class="top-right-bar">
+            <div class="hud-icon" data-name="背包">🎒</div>
+            <div class="hud-icon" data-name="世界地图">🌐</div>
+            <div class="hud-icon" data-name="邮件">✉️</div>
+            <div class="hud-icon" data-name="队伍">👥</div>
+            <div class="hud-icon" data-name="日志">📋</div>
+            <div class="hud-icon" data-name="刷新">⟳</div>
+        </div>
+
+        <!-- 右下 -->
+        <div class="bottom-right-hud">
+            <div class="key-box">
+                <div class="hud-icon" data-name="跳跃">🧍</div>
+                <span class="key-label">△</span>
+            </div>
+            <div class="key-box">
+                <div class="hud-icon" data-name="奔跑">🏃</div>
+                <span class="key-label">R2</span>
+            </div>
+            <div class="key-box">
+                <div class="hud-icon" data-name="武器切换">🔫</div>
+                <span class="key-label">□</span>
+            </div>
+        </div>
+        <div class="uid-text">UID：50020260828</div>
+    </div>
+
+    <!-- 设置弹窗 (替代原来的独立切换按钮) -->
+    <div class="settings-overlay" id="settingsOverlay">
+        <div class="settings-panel">
+            <div class="settings-header">
+                <h2>⚙ 设置</h2>
+                <button class="close-btn" id="closeSettings">✕</button>
+            </div>
+
+            <!-- 背景模式切换 -->
+            <div class="setting-row">
+                <span class="setting-label">📷 背景源</span>
+                <button class="toggle-btn" id="bgToggleBtn">摄像头</button>
+            </div>
+            <div class="setting-desc" id="bgDesc">当前使用 · 后置摄像头</div>
+
+            <!-- 预留其他设置项 (可扩展) -->
+            <div class="setting-row">
+                <span class="setting-label">🔊 音效</span>
+                <button class="toggle-btn">开启</button>
+            </div>
+            <div class="setting-row">
+                <span class="setting-label">📶 数据同步</span>
+                <button class="toggle-btn">在线</button>
+            </div>
+            <div style="margin-top: 20px; opacity:0.4; font-size:14px; text-align:center;">
+                Earth Online · v2.7.18
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const videoEl = document.getElementById('bgMedia');
+const parallaxWrap = document.getElementById('parallaxWrap');
+const minimapArrow = document.getElementById('minimapArrow');
+
+// 设置弹窗元素
+const settingsOverlay = document.getElementById('settingsOverlay');
+const gearIcon = document.getElementById('gearIcon');
+const closeSettings = document.getElementById('closeSettings');
+const bgToggleBtn = document.getElementById('bgToggleBtn');
+const bgDesc = document.getElementById('bgDesc');
+
+let useCamera = true;
+let mediaStream = null;
+let gamma = 0, beta = 0, compassHeading = 0;
+
+// --- 媒体处理 ---
+async function startCamera(){
+    stopMedia();
+    try{
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+            video:{facingMode:"environment"},
+            audio:false
+        });
+        videoEl.srcObject = mediaStream;
+        videoEl.src = "";
+        bgToggleBtn.textContent = '摄像头';
+        bgDesc.textContent = '当前使用 · 后置摄像头';
+        bgToggleBtn.classList.remove('active-mode');
+    } catch(err){
+        console.warn("摄像头不可用，自动切为视频文件模式");
+        useCamera = false;
+        startVideoFile();
+    }
+}
+
+function startVideoFile(){
+    stopMedia();
+    videoEl.srcObject = null;
+    videoEl.src = "./scene.mp4";
+    videoEl.loop = true;
+    videoEl.play().catch(()=>{});
+    bgToggleBtn.textContent = '视频文件';
+    bgDesc.textContent = '当前使用 · 本地视频 (scene.mp4)';
+    bgToggleBtn.classList.add('active-mode');
+}
+
+function stopMedia(){
+    if(mediaStream){
+        mediaStream.getTracks().forEach(t=>t.stop());
+        mediaStream=null;
+    }
+}
+
+// --- 设置弹窗逻辑 ---
+function openSettings() {
+    settingsOverlay.classList.add('open');
+}
+function closeSettingsFn() {
+    settingsOverlay.classList.remove('open');
+}
+
+gearIcon.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openSettings();
+});
+closeSettings.addEventListener('click', closeSettingsFn);
+settingsOverlay.addEventListener('click', (e) => {
+    if (e.target === settingsOverlay) closeSettingsFn();
+});
+
+// 背景切换按钮 (在设置面板内)
+bgToggleBtn.addEventListener('click', () => {
+    useCamera = !useCamera;
+    if (useCamera) {
+        startCamera();
+    } else {
+        startVideoFile();
+    }
+});
+
+// --- 其他HUD按钮点击反馈 ---
+document.querySelectorAll("[data-name]").forEach(el=>{
+    el.addEventListener('click', function(e){
+        e.stopPropagation();
+        if(this.id === 'gearIcon') return; // 齿轮已在上面处理
+        alert(`功能：${this.dataset.name}`);
+    })
+})
+
+// --- 陀螺仪 ---
+function enableGyro(){
+    if(!window.DeviceOrientationEvent){
+        console.log("设备不支持陀螺仪");
+        return;
+    }
+    if(typeof DeviceOrientationEvent.requestPermission === 'function'){
+        DeviceOrientationEvent.requestPermission()
+            .then(res=>{
+                if(res === 'granted'){
+                    window.addEventListener('deviceorientation',onOrientation);
+                }
+            }).catch(e=>console.error("陀螺仪权限拒绝",e));
+    }else{
+        window.addEventListener('deviceorientation',onOrientation);
+    }
+}
+
+function onOrientation(evt){
+    gamma = evt.gamma || 0;
+    beta = evt.beta || 0;
+    compassHeading = evt.webkitCompassHeading || (360 - evt.alpha) || 0;
+}
+
+function renderLoop(){
+    const parallaxX = gamma * 0.22;
+    const parallaxY = (beta -45) * 0.12;
+    parallaxWrap.style.transform = `translate(${parallaxX}px, ${parallaxY}px)`;
+    minimapArrow.style.transform = `rotate(${compassHeading}deg)`;
+    requestAnimationFrame(renderLoop);
+}
+
+window.onload = ()=>{
+    startCamera();
+    enableGyro();
+    renderLoop();
+};
+</script>
+</body>
+</html>
