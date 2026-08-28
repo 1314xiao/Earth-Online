@@ -27,6 +27,7 @@ Earth Online 是一个仿游戏启动器的 HTML 页面，模拟了大型多人�
 📂 项目结构
 
 earth-online/
+├── img     #图片
 ├── index.html          # 主启动页面
 ├── game.html              # 游戏主页面（示例跳转目标）
 ├── README.md           # 项目说明文档
