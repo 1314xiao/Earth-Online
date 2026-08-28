@@ -28,7 +28,7 @@ Earth Online 是一个仿游戏启动器的 HTML 页面，模拟了大型多人�
 
 earth-online/
 ├── index.html          # 主启动页面
-├── a.html              # 游戏主页面（示例跳转目标）
+├── game.html              # 游戏主页面（示例跳转目标）
 ├── README.md           # 项目说明文档
 └── LICENSE             # 开源许可证
 
@@ -67,7 +67,7 @@ npx serve .
 在 
 "index.html" 中找到以下代码，修改跳转路径：
 
-window.location.href = './a.html'; // 改为你的目标页面
+window.location.href = './game.html'; // 改为你的目标页面
 
 更换地球图片
 
