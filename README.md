@@ -115,6 +115,3 @@ background: url('你的图片链接') repeat-x center;
 - 灵感来自各类科幻游戏启动界面
 
 Earth Online - 探索未知，开启你的星际之旅 🚀
-本地开发
-
-1. 克隆仓库：
