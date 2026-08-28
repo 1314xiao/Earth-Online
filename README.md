@@ -43,7 +43,7 @@ earth-online/
 
 1. 克隆仓库：
 
-git clone https://github.com/yourusername/earth-online.git
+git clone https://github.com/1314xiao/Earth-Online.git
 
 2. 进入项目目录：
 
